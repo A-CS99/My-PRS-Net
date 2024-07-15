@@ -1,16 +1,26 @@
-function [] = genData()
+function [] = main()
+    genData('train', 1);
+    genData('test', 1);
+end
+
+function [] = genData(type, batch)
     % 配置生成类型 ('train' or 'test')
-    type = 'train';
+    if (~strcmp(type, 'train') && ~strcmp(type, 'test'))
+        return;
+    end
+    typename = type;
     % 配置路径
     % 原数据集路径
     data_set_path = '../shapenet';
     % 体素化模型保存路径
-    save_path = ['../datasets/', type];
+    save_path = ['../datasets/', typename];
     % 数据集划分信息路径
     split_path = '../data_split';
     if exist(save_path, "dir") == 0
         mkdir(save_path);
     end
+    % 打印进度的日志文件
+    log_file = [typename, '_progress.txt'];
 
     % 配置每个模型用于计算SDE的采样数量
     sample_num = 1000;
@@ -30,13 +40,15 @@ function [] = genData()
     % 读取shapeNet分类，从第3个开始为类别文件夹 (前两个为'.'和'..')
     cats = dir(data_set_path);
     for i=3:length(cats)
-        if ((i-3) ~= 1)
+        if ((i-3) ~= batch)
             continue;
         end
         cat_id = cats(i).name;
+        diary(log_file);
         disp([num2str(i-3), '/', num2str(length(cats)-3), ' type: ', cat_id]);
+        diary off;
         % 读取该分类中用于训练的模型id
-        split_file = fopen([split_path, '/', cat_id, '_', type, '.txt'], 'r');
+        split_file = fopen([split_path, '/', cat_id, '_', typename, '.txt'], 'r');
         model_ids = textscan(split_file, '%s', 'Delimiter', '\n');
         fclose(split_file);
         % 从cell中读取id数据 (结果仍为cell)
@@ -44,10 +56,9 @@ function [] = genData()
         % 计算平均到每个模型所需的模型变种数
         models_need_each = ceil(models_need / length(model_ids));
         for j=1:length(model_ids)
-            if (j > 100)
-                break;
-            end
+            diary(log_file);
             disp([num2str(j), '/', num2str(length(model_ids)), ' model: ', model_ids{j}]);
+            diary off;
             % 读取模型obj文件，获取顶点、三角面和1000个表面样本点
             obj_file = [data_set_path, '/', cat_id, '/', model_ids{j}, '/models/model_normalized.obj'];
             try
@@ -58,10 +69,9 @@ function [] = genData()
                 continue;
             end
             for k=1:models_need_each
-                if (k > 10)
-                    break;
-                end
+                diary(log_file);
                 disp(['rotate time: ', num2str(k), '/', num2str(models_need_each)]);
+                diary off;
                 % 生成随机的规范化旋转轴
                 axis = rand(1,3);
                 axis = axis/norm(axis);
@@ -91,6 +101,6 @@ function [] = genData()
             end
         end
     end
-    disp('training ends');
+    disp([typename, ' processing ends']);
 end
     
