@@ -1,0 +1,4 @@
+datasets/train/*
+datasets/test/*
+shapenet/*
+preprocess-voxelizate/*.asv
