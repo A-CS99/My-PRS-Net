@@ -1,6 +1,8 @@
 function [] = main()
-    genData('train', 1);
-    genData('test', 1);
+    for i=3:8
+        genData('train', i);
+        genData('test', i);
+    end
 end
 
 function [] = genData(type, batch)
