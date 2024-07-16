@@ -49,11 +49,6 @@ def quat2Rmatrix(quaternion: torch.Tensor):
     @return rotation_matrix: 旋转矩阵 3x3
     '''
     w, x, y, z = quaternion
-    # rotation_matrix = torch.tensor([
-    #     [1-2*y**2-2*z**2, 2*x*y-2*w*z, 2*x*z+2*w*y],
-    #     [2*x*y+2*w*z, 1-2*x**2-2*z**2, 2*y*z-2*w*x],
-    #     [2*x*z-2*w*y, 2*y*z+2*w*x, 1-2*x**2-2*y**2]
-    # ])
     rotation_matrix = torch.stack([
         torch.stack([1-2*y**2-2*z**2, 2*x*y-2*w*z, 2*x*z+2*w*y]),
         torch.stack([2*x*y+2*w*z, 1-2*x**2-2*z**2, 2*y*z-2*w*x]),
