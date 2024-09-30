@@ -1,0 +1,13 @@
+basic:
+  dataset_path: './datasets/'
+  save_path: './results/'
+gpu:
+  core_num: 1
+hyperparameters:
+  epochs: 5
+  batch_size: 32
+  learning_rate: 0.01
+  reg_weight: 25
+test:
+  dihedral_angle_bound: 0.5235987756
+  sde_bound: 4e-4

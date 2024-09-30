@@ -1,0 +1,7 @@
+datasets/train/*
+datasets/test/*
+shapenet/*
+preprocess-voxelizate/*.asv
+preprocess-voxelizate/*.txt
+.vscode/
+__pycache__/
