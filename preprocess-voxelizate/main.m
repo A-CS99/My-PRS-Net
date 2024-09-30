@@ -1,5 +1,6 @@
 function [] = main()
-    for i=3:8
+    % 分批次生成数据，当前每个分类为1批
+    for i=1:55
         genData('train', i);
         genData('test', i);
     end
@@ -12,7 +13,7 @@ function [] = genData(type, batch)
     end
     typename = type;
     % 配置路径
-    % 原数据集路径
+    % 模型数据集路径
     data_set_path = '../shapenet';
     % 体素化模型保存路径
     save_path = ['../datasets/', typename];
@@ -28,9 +29,9 @@ function [] = genData(type, batch)
     sample_num = 1000;
     % 配置每个种类的目标模型数 (数量不足时对原模型做变换)
     models_need = 4000;
-
     % 配置体素网格的大小
     volumn_size = 32;
+    
     % 计算体素化网格的中心点位置
     % % shapeNet模型经过规范化，点位分布于[-0.5,0.5]
     voxel_size = 1 / volumn_size;
@@ -39,7 +40,8 @@ function [] = genData(type, batch)
     centers_range = start_pos:voxel_size:end_pos;
     voxel_centers = ndgrid(centers_range, centers_range, centers_range);
 
-    % 读取shapeNet分类，从第3个开始为类别文件夹 (前两个为'.'和'..')
+    % 读取shapeNet分类
+    % 从第3个开始 (前两个为'.'和'..')
     cats = dir(data_set_path);
     for i=3:length(cats)
         if ((i-3) ~= batch)
@@ -88,15 +90,15 @@ function [] = genData(type, batch)
                 r_vertices = rotate_matrix*vertices';
                 r_surf_samples = rotate_matrix*surf_samples;
                 % 将顶点的规范化坐标系平移缩放到体素对应的位置
-                volumn_vertices = volumn_size*(r_vertices + 0.5) + 0.5;
-                volumn_samples = volumn_size*(r_surf_samples + 0.5) + 0.5;
+                volumn_vertices = (volumn_size - 1)*(r_vertices + 0.5);
+                volumn_samples = (volumn_size - 1)*(r_surf_samples + 0.5);
                 % 将顶点和三角面组合为结构体
                 model = struct();
                 model.vertices = volumn_vertices;
                 model.faces = faces;
                 volumn = model2volumn(model, volumn_size);
-%                 scatter3(volumn_samples(1,:), volumn_samples(2,:), volumn_samples(3,:), 'green');
-%                 hold off;
+                % scatter3(volumn_samples(1,:), volumn_samples(2,:), volumn_samples(3,:), 'green');
+                % hold off;
                 % 将所需变量保存
                 save_name = [save_path, '/', model_ids{j}, '_r', num2str(k), '.mat'];
                 save(save_name, "volumn", "volumn_vertices", "volumn_samples", "faces", "rotate_axisangle", "voxel_centers");

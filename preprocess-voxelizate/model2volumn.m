@@ -37,7 +37,7 @@ function volumn = process_model(face_vertices, volumn_size)
     % 拼接顶点坐标矩阵，并去除重复行
     splited_vertices = [face_vertices_splited.v1;face_vertices_splited.v2;face_vertices_splited.v3];
     splited_vertices = unique(splited_vertices, 'rows', 'stable');
-%     scatter3(splited_vertices(:,1),splited_vertices(:,2),splited_vertices(:,3));
+    % scatter3(splited_vertices(:,1),splited_vertices(:,2),splited_vertices(:,3));
     % 得到点坐标对应的体素坐标
     voxel_vertices = [floor(splited_vertices(:,1))+1,floor(splited_vertices(:,2))+1,floor(splited_vertices(:,3))+1];
     voxel_vertices = unique(voxel_vertices, 'rows', 'stable');
@@ -45,8 +45,8 @@ function volumn = process_model(face_vertices, volumn_size)
     voxel_vertices(:,1) = max(min(voxel_vertices(:,1), volumn_size(1)), 1);
     voxel_vertices(:,2) = max(min(voxel_vertices(:,2), volumn_size(2)), 1);
     voxel_vertices(:,3) = max(min(voxel_vertices(:,3), volumn_size(3)), 1);
-%     scatter3(voxel_vertices(:,1),voxel_vertices(:,2),voxel_vertices(:,3),'filled', 'd');
-%     hold on;
+    % scatter3(voxel_vertices(:,1),voxel_vertices(:,2),voxel_vertices(:,3),'filled', 'd');
+    % hold on;
     % 将向量转换为线性索引，利用索引为对应体素位赋值
     linear_indices = sub2ind(size(volumn), voxel_vertices(:,1), voxel_vertices(:,2), voxel_vertices(:,3));
     volumn(linear_indices) = true;
@@ -86,9 +86,9 @@ function face_vertices_splited = split_faces(face_vertices)
             mid_vertices.v13(:,i) = (face_vertices.v1(:,i)+face_vertices.v3(:,i))/2;
         end
         % 计算得到各边最长的三角面
-        max_v12 = [dist(:,1) >= dist(:,2) & dist(:,1) >= dist(:,3)];
-        max_v23 = [dist(:,2) >= dist(:,1) & dist(:,2) >= dist(:,3) & ~max_v12];
-        max_v13 = [dist(:,3) >= dist(:,1) & dist(:,3) >= dist(:,2) & ~max_v12 & ~max_v23];
+        max_v12 = dist(:,1) >= dist(:,2) & dist(:,1) >= dist(:,3);
+        max_v23 = dist(:,2) >= dist(:,1) & dist(:,2) >= dist(:,3) & ~max_v12;
+        max_v13 = dist(:,3) >= dist(:,1) & dist(:,3) >= dist(:,2) & ~max_v12 & ~max_v23;
         % 左替换最长边结点为中点
         left_split = face_vertices;
         left_split.v1(max_v12,:) = mid_vertices.v12(max_v12,:);
