@@ -1,5 +1,12 @@
 {
     "files.exclude": {
-        "**/datasets/*/**": true
-    }
+        "**/datasets/*/*": true,
+        "**/data_split/*": true,
+        "**/shapenet/*": true
+    },
+    "python.analysis.exclude": [
+        "**/datasets/*/*",
+        "**/data_split/*",
+        "**/shapenet/*"
+    ]
 }
