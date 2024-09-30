@@ -2,7 +2,8 @@ import yaml
 import torch
 from torch.utils.data import DataLoader
 from utils.data import ShapeNetDataset
-from utils.loss import SDELoss
+from utils.loss import SDELoss, plane_sde_loss, quat_sde_loss
+from utils.network import PRS_Net
 
 def test():
     # 配置参数
@@ -12,11 +13,12 @@ def test():
         config = yaml.load(f, Loader=yaml.FullLoader)
     data_path = config['basic']['dataset_path'] + 'test/'
     save_path = config['basic']['save_path']
-    sde_bound = config['test']['sde_bound']
+    sde_bound = float(config['test']['sde_bound'])
     dihedral_angle_bound = config['test']['dihedral_angle_bound']
     
     # 加载模型
-    net = torch.load(save_path + 'PRS-Net.pth').to(device)
+    net = PRS_Net().to(device)
+    net.load_state_dict(torch.load(save_path + 'PRS-Net.pth'))
     net.eval()
 
     # 加载数据
@@ -30,12 +32,16 @@ def test():
             break
         inputs = data.to(device)
         planes, quaternions = net(inputs)
+        planes = planes[0].clone().detach().requires_grad_(True)
+        quaternions = quaternions[0].clone().detach().requires_grad_(True)
+        print('predict planes:', planes, sep='\n')
+        print('predict quaternions:', quaternions, sep='\n')
         samples = dataset.raw_data(i).samples.to(device)
         vertices = dataset.raw_data(i).vertices.to(device)
         planes, quaternions = check_invalid(planes, quaternions, samples, vertices, bound=sde_bound, device=device)
         planes, quaternions = check_repeat(planes, quaternions, samples, vertices, bound=dihedral_angle_bound, device=device)
-        print('planes:', planes, sep='\n')
-        print('quaternions:', quaternions, sep='\n')
+        print('valid planes:', planes, sep='\n')
+        print('valid quaternions:', quaternions, sep='\n')
         # 计算损失
         sde_loss = SDELoss(planes, quaternions, samples, vertices, device=device)
         print('sde_loss:', sde_loss)
@@ -52,14 +58,16 @@ def check_invalid(planes, quaternions, samples, points, *, bound, device):
     @return planes: 有效的对称平面列表
     @return quaternions: 有效的旋转轴列表
     '''
+    resPlanes = []
+    resQuaternions = []
     # 去除SDE大于阈值的对称平面和旋转轴
     for i in range(len(planes)):
-        if plane_sde_loss(planes[i], samples, points, device=device) > bound:
-            planes.pop(i)
+        if plane_sde_loss(planes[i], samples, points, device=device) <= bound:
+            resPlanes.append(planes[i])
     for i in range(len(quaternions)):
-        if quat_sde_loss(quaternions[i], samples, points, device=device) > bound:
-            quaternions.pop(i)
-    return planes, quaternions
+        if quat_sde_loss(quaternions[i], samples, points, device=device) <= bound:
+            resQuaternions.append(quaternions[i])
+    return resPlanes, resQuaternions
 
 def check_repeat(planes, quaternions, samples, points, *, bound, device):
     '''
@@ -70,25 +78,27 @@ def check_repeat(planes, quaternions, samples, points, *, bound, device):
     @return planes: 去重后的对称平面列表
     @return quaternions: 去重后的旋转轴列表
     '''
+    resPlanes = []
+    resQuaternions = []
     # 两个法向量的夹角小于阈值则认为是同一个平面，去除SDE较大的平面
     for i in range(len(planes)):
         for j in range(i + 1, len(planes)):
             if dihedral_angle(planes[i], planes[j]) < bound:
                 if (plane_sde_loss(planes[i], samples, points, device=device) 
                     < plane_sde_loss(planes[j], samples, points, device=device)):
-                    planes.pop(j)
+                    resPlanes.append(planes[i])
                 else:
-                    planes.pop(i)
+                    resPlanes.append(planes[j])
     # 两个旋转轴的夹角小于阈值则认为是同一个旋转轴，去除SDE较大的旋转轴
     for i in range(len(quaternions)):
         for j in range(i + 1, len(quaternions)):
             if dihedral_angle(quaternions[i], quaternions[j]) < bound:
                 if (quat_sde_loss(quaternions[i], samples, points, device=device) 
                     < quat_sde_loss(quaternions[j], samples, points, device=device)):
-                    quaternions.pop(j)
+                    resQuaternions.append(quaternions[i])
                 else:
-                    quaternions.pop(i)
-    return planes, quaternions
+                    resQuaternions.append(quaternions[j])
+    return resPlanes, resQuaternions
 
 def dihedral_angle(v1, v2):
     '''
