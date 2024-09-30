@@ -2,12 +2,13 @@ import yaml
 import torch
 from torch.utils.data import DataLoader
 from utils.data import ShapeNetDataset
-from utils.loss import plane_sde_loss, quat_sde_loss
+from utils.loss import SDELoss
 
 def test():
     # 配置参数
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    with open('./config.yml', 'r') as f:
+    print('testing on', device)
+    with open('./src/config.yml', 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
     data_path = config['basic']['dataset_path'] + 'test/'
     save_path = config['basic']['save_path']
@@ -24,6 +25,9 @@ def test():
 
     # 测试
     for i, data in enumerate(dataloader):
+        # 只测试一个batch
+        if i == 1:
+            break
         inputs = data.to(device)
         planes, quaternions = net(inputs)
         samples = dataset.raw_data(i).samples.to(device)
@@ -32,8 +36,10 @@ def test():
         planes, quaternions = check_repeat(planes, quaternions, samples, vertices, bound=dihedral_angle_bound, device=device)
         print('planes:', planes, sep='\n')
         print('quaternions:', quaternions, sep='\n')
-        if i == 0:
-            break
+        # 计算损失
+        sde_loss = SDELoss(planes, quaternions, samples, vertices, device=device)
+        print('sde_loss:', sde_loss)
+        print('-----------------------------------')
 
 def check_invalid(planes, quaternions, samples, points, *, bound, device):
     '''

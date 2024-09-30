@@ -9,7 +9,8 @@ from utils.data import ShapeNetDataset
 def train():
     # 配置参数
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    with open('./config.yml', 'r') as f:
+    print('training on', device)
+    with open('./src/config.yml', 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
     data_path = config['basic']['dataset_path'] + 'train/'
     save_path = config['basic']['save_path']
@@ -34,6 +35,9 @@ def train():
         print('epoch: ', epoch + 1)
         running_loss = 0.0
         for i, data in enumerate(dataloader):
+            # 只训练一个batch
+            if i == 1:
+                break
             print('batch: ', i + 1)
             inputs = data.to(device)
             optimizer.zero_grad()
@@ -53,6 +57,7 @@ def train():
             if i % 200 == 199:
                 print('%d-[%5d, %5d] avg_loss: %.3f' % (epoch + 1, i - 198, i + 1, running_loss / 200))
                 running_loss = 0.0
+            print('-----------------------------------')
     print('Finished Training')
     torch.save(net.state_dict(), save_path + 'PRS-Net.pth')
 
